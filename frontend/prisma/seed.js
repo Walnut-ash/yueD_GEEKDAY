@@ -1,0 +1,109 @@
+
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+const mockRestaurants = [
+  {
+    name: "海底捞火锅",
+    address: "北京市朝阳区三里屯太古里南区",
+    lat: 39.9369,
+    lng: 116.4549,
+    avgPrice: 150,
+    openTime: "10:00",
+    closeTime: "02:00",
+    dishes: ["番茄锅底", "毛肚", "虾滑", "捞面"],
+    tags: ["火锅", "川菜", "聚餐"],
+    rating: 4.5,
+    source: "小红书",
+    imageUrl: "/hotpot-restaurant-interior.jpg",
+  },
+  {
+    name: "外婆家",
+    address: "北京市海淀区中关村大街",
+    lat: 39.9833,
+    lng: 116.3167,
+    avgPrice: 70,
+    openTime: "11:00",
+    closeTime: "21:30",
+    dishes: ["茶香鸡", "麻婆豆腐", "外婆红烧肉"],
+    tags: ["杭帮菜", "家常菜"],
+    rating: 4.3,
+    source: "抖音",
+    imageUrl: "/chinese-home-cooking-restaurant.jpg",
+  },
+  {
+    name: "西贝莜面村",
+    address: "北京市东城区王府井大街",
+    lat: 39.9147,
+    lng: 116.4107,
+    avgPrice: 90,
+    openTime: "10:30",
+    closeTime: "22:00",
+    dishes: ["莜面窝窝", "黄米凉糕", "羊肉串"],
+    tags: ["西北菜", "面食"],
+    rating: 4.4,
+    imageUrl: "/northwest-chinese-cuisine-restaurant.jpg",
+  },
+  {
+    name: "局气",
+    address: "北京市东城区簋街",
+    lat: 39.9401,
+    lng: 116.4234,
+    avgPrice: 85,
+    openTime: "11:00",
+    closeTime: "23:00",
+    dishes: ["蜂窝煤炒饭", "局气拍黄瓜", "炸灌肠"],
+    tags: ["北京菜", "创意菜"],
+    rating: 4.2,
+    source: "小红书",
+    imageUrl: "/beijing-traditional-restaurant.jpg",
+  },
+  {
+    name: "鼎泰丰",
+    address: "北京市朝阳区国贸商城",
+    lat: 39.9087,
+    lng: 116.4605,
+    avgPrice: 120,
+    openTime: "10:00",
+    closeTime: "21:30",
+    dishes: ["小笼包", "蟹粉小笼", "红油抄手"],
+    tags: ["台湾菜", "点心"],
+    rating: 4.6,
+    imageUrl: "/dim-sum-restaurant-elegant.jpg",
+  },
+]
+
+async function main() {
+  console.log('Start seeding ...')
+  // Clear existing data to avoid duplicates if run multiple times
+  await prisma.tag.deleteMany()
+  await prisma.dish.deleteMany()
+  await prisma.restaurant.deleteMany()
+
+  for (const restaurant of mockRestaurants) {
+    const { dishes, tags, ...data } = restaurant
+    const createdRestaurant = await prisma.restaurant.create({
+      data: {
+        ...data,
+        tags: {
+          create: tags.map(name => ({ name }))
+        },
+        dishes: {
+          create: dishes.map(name => ({ name }))
+        }
+      }
+    })
+    console.log(`Created restaurant with id: ${createdRestaurant.id}`)
+  }
+  console.log('Seeding finished.')
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect()
+  })
+  .catch(async (e) => {
+    console.error(e)
+    await prisma.$disconnect()
+    process.exit(1)
+  })

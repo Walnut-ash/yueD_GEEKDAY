@@ -18,21 +18,30 @@ export async function GET(request: Request) {
   try {
     // 1. Try Place Search (POI) first - better for business names
     const keywords = address
-    const poiUrl = `https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city || '')}&offset=1&page=1&extensions=base&key=${key}`
+    const poiUrl = `https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city || '')}&offset=1&page=1&extensions=all&key=${key}`
     const poiRes = await fetch(poiUrl)
     const poiData = await poiRes.json()
 
     if (poiData.status === '1' && poiData.pois && poiData.pois.length > 0) {
-      const location = poiData.pois[0].location
+      const poi = poiData.pois[0]
+      const location = poi.location
       const [lng, lat] = location.split(',').map(Number)
+      
+      // Get photos if available
+      let imageUrl = null
+      if (poi.photos && poi.photos.length > 0) {
+        imageUrl = poi.photos[0].url
+      }
+
       return NextResponse.json({ 
         lat, 
         lng,
-        formattedAddress: poiData.pois[0].address || poiData.pois[0].name,
-        province: poiData.pois[0].pname,
-        city: poiData.pois[0].cityname,
-        district: poiData.pois[0].adname,
-        name: poiData.pois[0].name // Also return name
+        formattedAddress: poi.address || poi.name,
+        province: poi.pname,
+        city: poi.cityname,
+        district: poi.adname,
+        name: poi.name, // Also return name
+        imageUrl // Return first photo URL
       })
     }
 

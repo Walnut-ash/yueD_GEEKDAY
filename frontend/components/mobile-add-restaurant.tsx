@@ -40,6 +40,7 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
     closeTime: "22:00",
     dishes: "",
     tags: "",
+    imageUrl: "", // Add image url state
   })
   
   const [geocoding, setGeocoding] = useState(false)
@@ -50,13 +51,12 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
       const res = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`)
       const data = await res.json()
       if (res.ok && data.lat && data.lng) {
-        // If name is returned from POI search, use it to auto-complete/correct the name if needed
-        // but for now we just return coordinates
         return { 
           lat: data.lat, 
           lng: data.lng, 
           name: data.name, 
-          address: data.formattedAddress 
+          address: data.formattedAddress,
+          imageUrl: data.imageUrl // Get image url
         }
       }
     } catch (e) {
@@ -139,14 +139,10 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
     let lng = 116.16147
     let finalAddress = manualForm.address
     let finalName = manualForm.name
+    let finalImageUrl = manualForm.imageUrl
 
     // Use name + address for search
     const searchStr = manualForm.address ? `${manualForm.address} ${manualForm.name}` : manualForm.name
-    
-    // Instead of just fetching coordinates, we now call the parse-xhs API logic (which handles POI search)
-    // or we can enhance the geocode API. 
-    // Actually, let's stick to geocode API but make sure it returns all data we need.
-    // Ideally we should use a unified "search place" function.
     
     // Let's rely on the updated geocode API which now returns POI info
     const coords = await fetchCoordinates(searchStr)
@@ -158,10 +154,10 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
       if (!finalAddress && coords.address) {
           finalAddress = coords.address
       }
-      // If POI returned a specific name and ours was generic, maybe update?
-      if (coords.name) {
-          // Optional: update name if user wants specific branch name
-          // finalName = coords.name 
+      
+      // Use POI image if available and user didn't provide one
+      if (coords.imageUrl && !finalImageUrl) {
+          finalImageUrl = coords.imageUrl
       }
     }
 
@@ -175,6 +171,7 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
       avgPrice: Number(manualForm.avgPrice) || 50,
       openTime: manualForm.openTime,
       closeTime: manualForm.closeTime,
+      imageUrl: finalImageUrl, // Pass image url
       dishes: manualForm.dishes
         .split(/[,，]/)
         .map((s) => s.trim())
@@ -193,6 +190,7 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
       closeTime: "22:00",
       dishes: "",
       tags: "",
+      imageUrl: "",
     })
   }
 
@@ -528,6 +526,16 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
                 placeholder="用逗号分隔，如：火锅，川菜，聚餐"
                 value={manualForm.tags}
                 onChange={(e) => setManualForm((f) => ({ ...f, tags: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl">图片链接 (可选)</Label>
+              <Input
+                id="imageUrl"
+                placeholder="输入图片URL，留空则尝试自动获取"
+                value={manualForm.imageUrl}
+                onChange={(e) => setManualForm((f) => ({ ...f, imageUrl: e.target.value }))}
               />
             </div>
 

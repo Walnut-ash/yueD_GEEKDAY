@@ -128,6 +128,11 @@ export async function POST(request: Request) {
              const validTypes = poiTypes.filter((t: string) => !t.includes('餐饮') && !t.includes('餐厅'))
              parsedData.tags = [...new Set([...(parsedData.tags || []), ...validTypes])].slice(0, 5)
           }
+
+          // Image handling
+          if (poi.photos && poi.photos.length > 0) {
+              parsedData.imageUrl = poi.photos[0].url
+          }
         } else {
            console.warn('[POI Search] Failed or no results:', poiData)
            // Fallback to Geocoding if POI search fails but we have an address
@@ -154,7 +159,7 @@ export async function POST(request: Request) {
       lng,
       source: 'Doubao AI',
       sourceUrl: url,
-      imageUrl: '/placeholder.svg'
+      imageUrl: parsedData.imageUrl || '/placeholder.svg'
     })
 
   } catch (error) {

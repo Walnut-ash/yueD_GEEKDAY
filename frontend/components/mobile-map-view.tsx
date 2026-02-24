@@ -207,19 +207,20 @@ export function MobileMapView({
                 const markerPos = marker.getPosition()
                 const dist = userPos.distance(markerPos) // meters
                 if (dist < nearestDist) nearestDist = dist
-                if (dist < 5000) nearbyCount++ // within 5km
+                if (dist < 10000) nearbyCount++ // within 10km
               })
 
               let description = "已获取您的精确位置。"
               if (nearbyCount > 0) {
-                description += ` 附近 5km 内有 ${nearbyCount} 家收藏餐厅。`
+                description += ` 附近 10km 内有 ${nearbyCount} 家收藏餐厅。`
               } else {
                 description += ` 附近暂无收藏餐厅（最近的在 ${(nearestDist / 1000).toFixed(1)}km 外）。`
               }
 
               // Always center on user location with appropriate zoom
+              // Zoom 11 is roughly 10km view range
               setTimeout(() => {
-                 map.setZoomAndCenter(15, result.position)
+                 map.setZoomAndCenter(11, result.position)
               }, 100)
 
               toast({
@@ -229,7 +230,7 @@ export function MobileMapView({
             } else {
                // No restaurants case
                setTimeout(() => {
-                 map.setZoomAndCenter(15, result.position)
+                 map.setZoomAndCenter(11, result.position)
                }, 100)
                
                toast({

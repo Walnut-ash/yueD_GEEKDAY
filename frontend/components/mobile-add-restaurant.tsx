@@ -9,6 +9,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Link, Sparkles, PenLine, Loader2, Check, MapPin, Edit2, X, FolderHeart, ChevronDown } from "lucide-react"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
 import type { RestaurantList } from "@/types/restaurant"
 
 interface MobileAddRestaurantProps {
@@ -44,12 +53,43 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
   })
   
   const [geocoding, setGeocoding] = useState(false)
+  const [candidates, setCandidates] = useState<any[]>([])
+  const [showCandidateDrawer, setShowCandidateDrawer] = useState(false)
 
   // Helper to fetch coordinates
-  const fetchCoordinates = async (address: string) => {
+  const fetchCoordinates = async (address: string, multiple = false) => {
     try {
-      const res = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`)
+      let url = `/api/geocode?address=${encodeURIComponent(address)}&multiple=${multiple}`
+      
+      // Try to get current location to improve search relevance
+      if (typeof window !== 'undefined' && (window as any).AMap) {
+         // @ts-ignore
+         const AMap = (window as any).AMap
+         // We can't easily get AMap instance here if it's not passed down, 
+         // but maybe we can use a simpler approach: use localStorage if available or just ask browser
+         // Actually, let's try to use browser geolocation API directly if we don't have AMap handy
+         // Or better, let's use a cached location if we have one.
+         
+         // For now, let's try standard navigator.geolocation
+         try {
+             const pos: any = await new Promise((resolve, reject) => {
+                 navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 2000 })
+             })
+             if (pos && pos.coords) {
+                 url += `&location=${pos.coords.longitude},${pos.coords.latitude}`
+             }
+         } catch (e) {
+             // Ignore location error
+         }
+      }
+
+      const res = await fetch(url)
       const data = await res.json()
+      
+      if (multiple && data.candidates) {
+        return { candidates: data.candidates }
+      }
+
       if (res.ok && data.lat && data.lng) {
         return { 
           lat: data.lat, 
@@ -131,47 +171,82 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
     }
   }
 
-  const handleAddManual = async () => {
-    if (!manualForm.name) return // Address is optional if name is provided, we can search by name
-
-    setGeocoding(true)
-    let lat = 23.30324 // Default Puning
-    let lng = 116.16147
-    let finalAddress = manualForm.address
-    let finalName = manualForm.name
-    let finalImageUrl = manualForm.imageUrl
-
-    // Use name + address for search
-    const searchStr = manualForm.address ? `${manualForm.address} ${manualForm.name}` : manualForm.name
+  const handleConfirmCandidate = (candidate: any) => {
+    setShowCandidateDrawer(false)
     
-    // Let's rely on the updated geocode API which now returns POI info
-    const coords = await fetchCoordinates(searchStr)
+    // Merge candidate data with manual form
+    const finalName = candidate.name || manualForm.name
+    const finalAddress = candidate.formattedAddress || candidate.address || manualForm.address || "未知地址"
+    const finalImageUrl = candidate.imageUrl || manualForm.imageUrl
     
-    if (coords) {
-      lat = coords.lat
-      lng = coords.lng
-      // If user didn't input address, use the one from POI
-      if (!finalAddress && coords.address) {
-          finalAddress = coords.address
-      }
-      
-      // Use POI image if available and user didn't provide one
-      if (coords.imageUrl && !finalImageUrl) {
-          finalImageUrl = coords.imageUrl
-      }
-    }
-
-    setGeocoding(false)
-
     onAdd({
       name: finalName,
-      address: finalAddress || "未知地址", // Fallback
-      lat,
-      lng,
+      address: finalAddress,
+      lat: candidate.lat,
+      lng: candidate.lng,
       avgPrice: Number(manualForm.avgPrice) || 50,
       openTime: manualForm.openTime,
       closeTime: manualForm.closeTime,
-      imageUrl: finalImageUrl, // Pass image url
+      imageUrl: finalImageUrl,
+      dishes: manualForm.dishes
+        .split(/[,，]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+      tags: manualForm.tags
+        .split(/[,，]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    }, selectedListId)
+
+    // Reset form
+    setManualForm({
+      name: "",
+      address: "",
+      avgPrice: "",
+      openTime: "10:00",
+      closeTime: "22:00",
+      dishes: "",
+      tags: "",
+      imageUrl: "",
+    })
+  }
+
+  const handleAddManual = async () => {
+    if (!manualForm.name) return 
+
+    setGeocoding(true)
+    
+    // Use name + address for search
+    const searchStr = manualForm.address ? `${manualForm.address} ${manualForm.name}` : manualForm.name
+    
+    // Fetch multiple candidates for confirmation
+    const result = await fetchCoordinates(searchStr, true)
+    setGeocoding(false)
+    
+    if (result && result.candidates && result.candidates.length > 0) {
+      setCandidates(result.candidates)
+      setShowCandidateDrawer(true)
+      return
+    }
+
+    // Fallback if no candidates found (e.g. API error or really no result)
+    // Just add with default coords (or maybe show error? sticking to previous behavior for now but maybe a toast warning would be better)
+    // Since user wants "confirmation", if no result, maybe we should say "No location found"
+    // But for now let's just proceed to add as "Unknown Location" or default Puning.
+    
+    // Actually, let's show the drawer with a "Manual Entry" option if search fails?
+    // Or just alert.
+    alert("未找到相关餐厅位置信息，将使用默认坐标添加。")
+
+    onAdd({
+      name: manualForm.name,
+      address: manualForm.address || "未知地址",
+      lat: 23.30324,
+      lng: 116.16147,
+      avgPrice: Number(manualForm.avgPrice) || 50,
+      openTime: manualForm.openTime,
+      closeTime: manualForm.closeTime,
+      imageUrl: manualForm.imageUrl,
       dishes: manualForm.dishes
         .split(/[,，]/)
         .map((s) => s.trim())
@@ -546,6 +621,72 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
           </TabsContent>
         </Tabs>
       </div>
+      {/* Candidate Selection Drawer */}
+      <Drawer open={showCandidateDrawer} onOpenChange={setShowCandidateDrawer}>
+        <DrawerContent className="max-h-[85vh] max-w-[430px] mx-auto">
+          <DrawerHeader>
+            <DrawerTitle>请确认餐厅位置</DrawerTitle>
+            <DrawerDescription>
+              找到以下相关地点，请选择正确的一项
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 overflow-y-auto space-y-3">
+            {candidates.map((candidate, index) => (
+              <button
+                key={index}
+                onClick={() => handleConfirmCandidate(candidate)}
+                className="w-full flex items-start gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="w-16 h-16 shrink-0 rounded-lg bg-muted overflow-hidden">
+                  <img 
+                    src={candidate.imageUrl || "/placeholder.svg"} 
+                    alt={candidate.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-sm">{candidate.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {candidate.formattedAddress || candidate.address}
+                  </p>
+                  {candidate.type && (
+                    <span className="inline-block mt-1.5 px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] rounded-full">
+                      {candidate.type.split(';')[0]}
+                    </span>
+                  )}
+                </div>
+                <div className="shrink-0 self-center">
+                  <div className="w-6 h-6 rounded-full border border-primary/30 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary opacity-0 group-active:opacity-100" />
+                  </div>
+                </div>
+              </button>
+            ))}
+            
+            {/* Option to use raw input if none match */}
+            <button
+              onClick={() => {
+                // Add using original input
+                handleConfirmCandidate({
+                    name: manualForm.name,
+                    address: manualForm.address || "自定义位置",
+                    lat: 23.30324,
+                    lng: 116.16147,
+                    imageUrl: manualForm.imageUrl
+                })
+              }}
+              className="w-full py-3 text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              以上都不是，直接添加
+            </button>
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">取消</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

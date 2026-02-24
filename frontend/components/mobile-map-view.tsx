@@ -66,6 +66,7 @@ export function MobileMapView({
   const mapRef = useRef<any>(null)
   const amapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const userMarkerRef = useRef<any>(null)
   
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const chipScrollRef = useRef<HTMLDivElement>(null)
@@ -116,20 +117,22 @@ export function MobileMapView({
 
     try {
       // @ts-ignore
-      const AMap = (window as any).AMap
-      amapRef.current = AMap
+    const AMap = (window as any).AMap
+    amapRef.current = AMap
 
-      const map = new AMap.Map(mapContainerRef.current, {
-        viewMode: "2D",
-        zoom: 13,
-        center: [116.16147, 23.30324], // Puning City center
-        // mapStyle: "amap://styles/whitesmoke", // Removed to use default style
-      })
+    const map = new AMap.Map(mapContainerRef.current, {
+      viewMode: "2D",
+      zoom: 13,
+      center: [116.16147, 23.30324], // Puning City center
+    })
 
-      // @ts-ignore
-      mapRef.current = map
+    // @ts-ignore
+    mapRef.current = map
 
-      map.plugin(["AMap.Scale", "AMap.ToolBar"], function () {
+    // Ensure user marker is cleared on init
+    userMarkerRef.current = null
+
+    map.plugin(["AMap.Scale", "AMap.ToolBar"], function () {
         map.addControl(new AMap.Scale())
         map.addControl(new AMap.ToolBar({ position: "RB" }))
       })
@@ -161,7 +164,7 @@ export function MobileMapView({
         timeout: 10000,
         zoomToAccuracy: false, // Don't auto zoom too much
         position: 'RB',
-        showMarker: true,
+        showMarker: false, // Use custom marker instead
         showCircle: true,
         panToLocation: true,
       })
@@ -171,14 +174,33 @@ export function MobileMapView({
         if(status === 'complete'){
             console.log('Located successfully', result)
             
+            // 1. Add custom pulse marker
+            if (userMarkerRef.current) {
+                map.remove(userMarkerRef.current)
+            }
+            
+            const content = `
+                <div class="user-location-marker">
+                    <div class="user-location-pulse"></div>
+                    <div class="user-location-dot"></div>
+                </div>
+            `
+            
+            const marker = new AMap.Marker({
+                position: result.position,
+                content: content,
+                offset: new AMap.Pixel(-24, -24), // Center the 48x48 marker
+                zIndex: 100 // Ensure it's above other markers
+            })
+            
+            map.add(marker)
+            userMarkerRef.current = marker
+
             // Calculate distance to nearest restaurant
             let nearestDist = Infinity
             let nearbyCount = 0
             const userPos = result.position // AMap.LngLat
             
-            // @ts-ignore
-            const AMap = amapRef.current
-
             // Check if we have restaurants
             if (markersRef.current && markersRef.current.length > 0) {
               markersRef.current.forEach(marker => {
@@ -195,9 +217,9 @@ export function MobileMapView({
                 description += ` 附近暂无收藏餐厅（最近的在 ${(nearestDist / 1000).toFixed(1)}km 外）。`
               }
 
-              // Auto fit view to show both user location and restaurants
+              // Always center on user location with appropriate zoom
               setTimeout(() => {
-                 map.setFitView(null, false, [50, 50, 50, 50])
+                 map.setZoomAndCenter(15, result.position)
               }, 100)
 
               toast({
@@ -205,6 +227,11 @@ export function MobileMapView({
                 description: description,
               })
             } else {
+               // No restaurants case
+               setTimeout(() => {
+                 map.setZoomAndCenter(15, result.position)
+               }, 100)
+               
                toast({
                 title: "定位成功",
                 description: "已获取您的精确位置，但当前没有展示的餐厅。",
@@ -298,6 +325,8 @@ export function MobileMapView({
       }
       markersRef.current = []
     }
+    
+    // Don't clear user marker here!
 
     const newMarkers: any[] = []
 
@@ -367,6 +396,49 @@ export function MobileMapView({
       <style jsx global>{`
         .amap-logo, .amap-copyright {
            display: none !important;
+        }
+        
+        @keyframes pulse-ring {
+          0% {
+            width: 16px;
+            height: 16px;
+            opacity: 0.8;
+          }
+          100% {
+            width: 48px;
+            height: 48px;
+            opacity: 0;
+          }
+        }
+        
+        .user-location-marker {
+          position: relative;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .user-location-dot {
+          width: 16px;
+          height: 16px;
+          background-color: #3b82f6;
+          border: 3px solid white;
+          border-radius: 50%;
+          z-index: 2;
+          box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+        
+        .user-location-pulse {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: rgba(59, 130, 246, 0.4);
+          border-radius: 50%;
+          animation: pulse-ring 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+          z-index: 1;
         }
       `}</style>
       

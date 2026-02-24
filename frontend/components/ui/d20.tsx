@@ -36,7 +36,7 @@ export default function D20Dice({
     }
 
     // Rotate continuously
-    setRotation((prev) => (prev + 15) % 360)
+    setRotation((prev) => (prev + 5) % 360)
     
     // Scale pulse
     const pulse = Math.sin(elapsed / 100) * 0.1 + 1
@@ -130,6 +130,7 @@ export default function D20Dice({
               textShadow: "2px 2px 0px rgba(0,0,0,0.5)"
             }}
           >
+            {/* Show random number 1-20 when rolling */}
             {currentNumber}
           </span>
         </div>

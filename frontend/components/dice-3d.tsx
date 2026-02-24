@@ -2,8 +2,35 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo, Suspense } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { Environment, Text } from "@react-three/drei"
 import * as THREE from "three"
+
+/* ─── Helper to create number textures without external fonts ─── */
+function useNumberTextures(numbers: number[], color: string) {
+  return useMemo(() => {
+    return numbers.map((num) => {
+      const canvas = document.createElement("canvas")
+      canvas.width = 128
+      canvas.height = 128
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.clearRect(0, 0, 128, 128)
+        ctx.fillStyle = color
+        // Use system fonts which are guaranteed to exist
+        ctx.font = "bold 90px Arial, sans-serif"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        // Add a slight shadow/outline for better visibility
+        ctx.strokeStyle = "rgba(0,0,0,0.5)"
+        ctx.lineWidth = 4
+        ctx.strokeText(String(num), 64, 64)
+        ctx.fillText(String(num), 64, 64)
+      }
+      const texture = new THREE.CanvasTexture(canvas)
+      texture.anisotropy = 16
+      return texture
+    })
+  }, [numbers, color])
+}
 
 /* ─── Compute face centers & orientations for number placement ─── */
 function useFaceData(radius: number) {
@@ -54,7 +81,10 @@ function D20Mesh({ rolling, radius = 1.4 }: { rolling: boolean; radius?: number 
   ]
 
   // Classic D20 number layout (opposite faces sum to 21)
-  const faceNumbers = [20, 1, 12, 9, 8, 13, 16, 5, 4, 17, 14, 7, 2, 19, 10, 11, 18, 3, 6, 15]
+  const faceNumbers = useMemo(() => [20, 1, 12, 9, 8, 13, 16, 5, 4, 17, 14, 7, 2, 19, 10, 11, 18, 3, 6, 15], [])
+  
+  // Pre-generate number textures using system fonts
+  const numberTextures = useNumberTextures(faceNumbers, "#f0e8d0")
 
   useEffect(() => {
     if (!meshRef.current) return
@@ -177,33 +207,34 @@ function D20Mesh({ rolling, radius = 1.4 }: { rolling: boolean; radius?: number 
         <meshBasicMaterial color="#1a0a20" wireframe wireframeLinewidth={1} />
       </mesh>
 
-      {/* Numbers 1-20 on each face */}
+      {/* Numbers 1-20 on each face using CanvasTextures */}
       {faces.map((face, i) => {
         const num = faceNumbers[i] ?? i + 1
+        // Small outward offset to avoid z-fighting
         const pos = face.center
           .clone()
           .add(face.normal.clone().multiplyScalar(textOffset))
-        const fontSize = num === 20 ? radius * 0.38 : radius * 0.3
+        
+        const size = radius * 0.5
 
         // Convert quaternion to euler so we can pass as rotation prop
         const euler = new THREE.Euler().setFromQuaternion(face.quaternion)
 
         return (
-          <Text
+          <mesh
             key={i}
             position={[pos.x, pos.y, pos.z]}
             rotation={[euler.x, euler.y, euler.z]}
-            fontSize={fontSize}
-            fontWeight="bold"
-            color="#f0e8d0"
-            anchorX="center"
-            anchorY="middle"
-            font="/fonts/Geist-Bold.ttf"
-            outlineWidth={0.025}
-            outlineColor="#000000"
           >
-            {String(num)}
-          </Text>
+            <planeGeometry args={[size, size]} />
+            <meshBasicMaterial 
+              map={numberTextures[i]} 
+              transparent={true} 
+              opacity={1}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         )
       })}
     </group>
@@ -255,7 +286,6 @@ export function DiceRollOverlay({ onFinish }: { onFinish: () => void }) {
           <pointLight position={[0, 0, 3]} intensity={0.6} color="#ff6644" />
           <Suspense fallback={null}>
             <D20Mesh rolling={true} radius={1.6} />
-            <Environment preset="studio" />
           </Suspense>
         </Canvas>
       </div>

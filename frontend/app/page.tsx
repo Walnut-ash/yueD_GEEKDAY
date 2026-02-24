@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import type { Restaurant, RestaurantList } from "@/types/restaurant"
 import {
   getLists,
@@ -119,6 +119,44 @@ export default function HomePage() {
   useEffect(() => {
     if (!currentListId) return
     
+    // Immediate sync on mount/id change
+    const sync = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/lists/${currentListId}`)
+            if (res.ok) {
+                const remoteList = await res.json()
+                setLists(prev => {
+                    const next = [...prev]
+                    const idx = next.findIndex(l => l.id === remoteList.id)
+                    if (idx >= 0) {
+                        if (JSON.stringify(next[idx].restaurants) !== JSON.stringify(remoteList.restaurants) || next[idx].name !== remoteList.name) {
+                             console.log('Syncing update from backend (immediate)...')
+                             next[idx] = { ...remoteList }
+                             saveLists(next)
+                             return next
+                        }
+                    }
+                    return prev
+                })
+            } else if (res.status === 404) {
+               // If list not found on backend (maybe created offline), sync it up!
+               console.log('List not found on backend, syncing up...')
+               // Use a functional update or ref to access latest state, but here we can just use lists directly
+               // However, lists is stale in this closure if not in dependency array.
+               // Let's just find it in the current render scope, BUT wait, this effect runs on mount.
+               // To fix this properly, we need to access the LATEST lists.
+               // A simple way is to use a ref for lists.
+               if (listsRef.current) {
+                   const localList = listsRef.current.find(l => l.id === currentListId)
+                   if (localList) {
+                       syncToBackend(localList)
+                   }
+               }
+            }
+        } catch (e) {}
+    }
+    sync()
+    
     const interval = setInterval(async () => {
         try {
             // Only sync if we have a backend (hackathon mode)
@@ -138,14 +176,26 @@ export default function HomePage() {
                     const idx = next.findIndex(l => l.id === remoteList.id)
                     if (idx >= 0) {
                         // Only update if content is different (simple check)
-                        if (JSON.stringify(next[idx].restaurants) !== JSON.stringify(remoteList.restaurants)) {
-                             next[idx] = remoteList
+                        // Deep compare is expensive, maybe just check length or updatedAt if available
+                        // Let's do a JSON compare for now as lists are small
+                        if (JSON.stringify(next[idx].restaurants) !== JSON.stringify(remoteList.restaurants) || next[idx].name !== remoteList.name) {
+                             console.log('Syncing update from backend...')
+                             next[idx] = { ...remoteList } // Replace with remote
                              saveLists(next) // Persist
                              return next
                         }
                     }
                     return prev
                 })
+            } else if (res.status === 404) {
+               // If list not found on backend (maybe created offline), sync it up!
+               // Use ref to access latest state
+               if (listsRef.current) {
+                   const localList = listsRef.current.find(l => l.id === currentListId)
+                   if (localList) {
+                       syncToBackend(localList)
+                   }
+               }
             }
         } catch (e) {
             // Backend might be down or list not on backend yet
@@ -153,11 +203,18 @@ export default function HomePage() {
     }, 2000)
     
     return () => clearInterval(interval)
-  }, [currentListId])
+  }, [currentListId]) // We don't want to re-run on lists change, so we use ref
+
+  // Ref to hold latest lists for sync effect
+  const listsRef = useRef(lists)
+  useEffect(() => {
+      listsRef.current = lists
+  }, [lists])
 
   // Helper to sync specific list to backend
   const syncToBackend = async (list: RestaurantList) => {
       try {
+          console.log('Syncing to backend:', list.name, list.restaurants.length)
           await fetch(`${API_URL}/api/lists`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

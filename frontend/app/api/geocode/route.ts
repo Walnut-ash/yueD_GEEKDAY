@@ -17,6 +17,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'AMap Key is missing' }, { status: 500 })
   }
 
+  // Helper for distance calculation (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // meters
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // in meters
+  }
+
   try {
     // 1. Try Place Search (POI) first - better for business names
     const keywords = address
@@ -42,12 +58,19 @@ export async function GET(request: Request) {
 
     if (poiData.status === '1' && poiData.pois && poiData.pois.length > 0) {
       if (multiple) {
-         const candidates = poiData.pois.map((poi: any) => {
+         let candidates = poiData.pois.map((poi: any) => {
             const [lng, lat] = poi.location.split(',').map(Number)
             let imageUrl = null
             if (poi.photos && poi.photos.length > 0) {
               imageUrl = poi.photos[0].url
             }
+            
+            let distance = null;
+            if (location) {
+                const [userLng, userLat] = location.split(',').map(Number);
+                distance = calculateDistance(userLat, userLng, lat, lng);
+            }
+
             return {
               lat,
               lng,
@@ -57,9 +80,16 @@ export async function GET(request: Request) {
               district: poi.adname,
               name: poi.name,
               imageUrl,
-              type: poi.type
+              type: poi.type,
+              distance // Return distance
             }
          })
+
+         // Sort by distance if available
+         if (location) {
+             candidates.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
+         }
+
          return NextResponse.json({ candidates })
       }
 

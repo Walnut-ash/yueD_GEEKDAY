@@ -645,7 +645,16 @@ export function MobileAddRestaurant({ onAdd, lists, currentListId }: MobileAddRe
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-sm">{candidate.name}</h4>
+                  <h4 className="font-semibold text-sm">
+                    {candidate.name}
+                    {candidate.distance !== undefined && candidate.distance !== null && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {candidate.distance < 1000 
+                          ? `${Math.round(candidate.distance)}m` 
+                          : `${(candidate.distance / 1000).toFixed(1)}km`}
+                      </span>
+                    )}
+                  </h4>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {candidate.formattedAddress || candidate.address}
                   </p>

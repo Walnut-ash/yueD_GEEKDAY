@@ -4,8 +4,9 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import Script from "next/script"
 import type { Restaurant, RestaurantList } from "@/types/restaurant"
-import { Clock, Star, X, Navigation, Search, ChevronDown, Crosshair, MapPin } from "lucide-react"
+import { Clock, Star, X, Navigation, Search, ChevronDown, Crosshair, MapPin, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 interface MobileMapViewProps {
   restaurants: Restaurant[]
@@ -61,6 +62,7 @@ export function MobileMapView({
   const [searchText, setSearchText] = useState("")
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading")
   const [mapError, setMapError] = useState<string>("")
+  const [isLocating, setIsLocating] = useState(false)
   const mapRef = useRef<any>(null)
   const amapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -106,6 +108,8 @@ export function MobileMapView({
     return filtered
   }, [restaurants, activeCategory, searchText])
 
+  const { toast } = useToast()
+
   // Initialize AMap using Script tag approach with onLoad callback
   const initMap = useCallback(() => {
     if (typeof window === "undefined" || !(window as any).AMap || !mapContainerRef.current || mapRef.current) return
@@ -143,6 +147,127 @@ export function MobileMapView({
       setMapError(String(e))
     }
   }, [])
+
+  const locateUser = useCallback(() => {
+    const map = mapRef.current
+    const AMap = amapRef.current
+    if (!map || !AMap || isLocating) return
+
+    setIsLocating(true)
+
+    map.plugin("AMap.Geolocation", function () {
+      const geolocation = new AMap.Geolocation({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        zoomToAccuracy: false, // Don't auto zoom too much
+        position: 'RB',
+        showMarker: true,
+        showCircle: true,
+        panToLocation: true,
+      })
+      
+      geolocation.getCurrentPosition(function(status: string, result: any) {
+        setIsLocating(false)
+        if(status === 'complete'){
+            console.log('Located successfully', result)
+            
+            // Calculate distance to nearest restaurant
+            let nearestDist = Infinity
+            let nearbyCount = 0
+            const userPos = result.position // AMap.LngLat
+            
+            // @ts-ignore
+            const AMap = amapRef.current
+
+            // Check if we have restaurants
+            if (markersRef.current && markersRef.current.length > 0) {
+              markersRef.current.forEach(marker => {
+                const markerPos = marker.getPosition()
+                const dist = userPos.distance(markerPos) // meters
+                if (dist < nearestDist) nearestDist = dist
+                if (dist < 5000) nearbyCount++ // within 5km
+              })
+
+              let description = "已获取您的精确位置。"
+              if (nearbyCount > 0) {
+                description += ` 附近 5km 内有 ${nearbyCount} 家收藏餐厅。`
+              } else {
+                description += ` 附近暂无收藏餐厅（最近的在 ${(nearestDist / 1000).toFixed(1)}km 外）。`
+              }
+
+              // Auto fit view to show both user location and restaurants
+              setTimeout(() => {
+                 map.setFitView(null, false, [50, 50, 50, 50])
+              }, 100)
+
+              toast({
+                title: "定位成功",
+                description: description,
+              })
+            } else {
+               toast({
+                title: "定位成功",
+                description: "已获取您的精确位置，但当前没有展示的餐厅。",
+              })
+            }
+
+        } else {
+            console.error('Location failed', status, result)
+            
+            let errorMsg = '未知错误'
+            if (result.message) errorMsg = result.message
+            else if (typeof result === 'string') errorMsg = result
+
+            // 如果是 HTTPS 问题，提示更明确
+            if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                errorMsg += " (非HTTPS环境无法精确定位)"
+            }
+            
+            toast({
+              variant: "destructive",
+              title: "无法获取精确位置",
+              description: `原因：${errorMsg}。尝试切换到城市定位。`,
+            })
+            
+            // Fallback to City Location immediately on any error
+            console.log('Attempting fallback to CitySearch...')
+            map.plugin("AMap.CitySearch", function () {
+                const citySearch = new AMap.CitySearch()
+                citySearch.getLocalCity(function (status: string, result: any) {
+                  if (status === 'complete' && result.info === 'OK') {
+                    if (result && result.city && result.bounds) {
+                      const citybounds = result.bounds
+                      map.setBounds(citybounds)
+                      console.log('Fallback to city:', result.city)
+                      toast({
+                        title: `已定位到：${result.city}`,
+                        description: "由于精确位置获取失败，仅显示城市范围。",
+                      })
+                    }
+                  } else {
+                      console.error('City fallback failed', result)
+                      toast({
+                        variant: "destructive",
+                        title: "定位完全失败",
+                        description: "无法获取位置信息，请检查网络或权限。",
+                      })
+                  }
+                })
+            })
+        }
+      })
+    })
+  }, [toast])
+
+  // Auto locate when map is ready
+  useEffect(() => {
+    if (mapStatus === 'ready') {
+      // Small delay to ensure map is fully rendered
+      setTimeout(() => {
+        locateUser()
+      }, 500)
+    }
+  }, [mapStatus, locateUser])
 
   useEffect(() => {
     // If AMap is already loaded (from previous navigation), init immediately
@@ -222,6 +347,9 @@ export function MobileMapView({
     }
 
   }, [displayedRestaurants, selectedRestaurant])
+
+  // Search nearby functionality removed
+
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#f6f7f9]">
@@ -410,27 +538,20 @@ export function MobileMapView({
         </div>
       </div>
 
+
+
       {/* Locate button */}
       <button
         className="absolute right-4 z-10 w-10 h-10 rounded-full bg-background shadow-md border border-border/30 flex items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: selectedRestaurant ? 196 : 100 }}
-        onClick={() => {
-          const map = mapRef.current
-          const AMap = amapRef.current
-          if (!map || !AMap) return
-          map.plugin("AMap.Geolocation", function () {
-            const geolocation = new AMap.Geolocation({
-              enableHighAccuracy: true,
-              timeout: 10000,
-              buttonPosition: "RB",
-              buttonOffset: new AMap.Pixel(10, 20),
-              zoomToAccuracy: true,
-            })
-            geolocation.getCurrentPosition()
-          })
-        }}
+        style={{ bottom: selectedRestaurant ? 260 : 100 }}
+        onClick={locateUser}
+        disabled={isLocating}
       >
-        <Crosshair className="w-[18px] h-[18px] text-foreground/50" />
+        {isLocating ? (
+          <Loader2 className="w-[18px] h-[18px] text-primary animate-spin" />
+        ) : (
+          <Crosshair className="w-[18px] h-[18px] text-foreground/50" />
+        )}
       </button>
 
       {/* ====== Bottom detail card ====== */}

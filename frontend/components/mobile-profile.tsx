@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { RestaurantList } from "@/types/restaurant"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Utensils, Plus, Trash2, Share2, ChevronRight, FolderOpen, Copy, Check } from "lucide-react"
+import { Utensils, Plus, Trash2, Share2, ChevronRight, FolderOpen, Copy, Check, Users } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface MobileProfileProps {
   lists: RestaurantList[]
@@ -27,6 +28,7 @@ export function MobileProfile({
   const [newListName, setNewListName] = useState("")
   const [showNewListDialog, setShowNewListDialog] = useState(false)
   const [copied, setCopied] = useState(false)
+  const { toast } = useToast()
 
   const handleCreateList = () => {
     if (newListName.trim()) {
@@ -36,11 +38,28 @@ export function MobileProfile({
     }
   }
 
-  const handleCopyShareCode = () => {
-    if (currentList?.shareCode) {
-      navigator.clipboard.writeText(currentList.shareCode)
+  const handleShare = async () => {
+    if (!currentList) return
+
+    // 构造分享链接，包含 listId
+    // 假设部署后的域名，或者使用当前 window.location.origin
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const shareUrl = `${origin}?listId=${currentList.id}&action=join`
+    
+    try {
+      await navigator.clipboard.writeText(`来【饭点】和我一起编辑"${currentList.name}"吧！\n点击链接加入：${shareUrl}`)
       setCopied(true)
+      toast({
+        title: "邀请链接已复制",
+        description: "快发给朋友一起编辑餐厅列表吧！",
+      })
       setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "复制失败",
+        description: "请手动复制链接",
+      })
     }
   }
 
@@ -61,43 +80,45 @@ export function MobileProfile({
 
       {/* 内容 */}
       <div className="flex-1 overflow-y-auto">
-        {/* 当前列表分享 */}
+        {/* 当前列表分享 - 一起吃饭吧 */}
         {currentList && (
           <div className="p-4 border-b">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">当前列表</h2>
-            <div className="p-4 rounded-2xl bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{currentList.name}</h3>
-                  <p className="text-sm text-muted-foreground">{currentList.restaurants.length} 家餐厅</p>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">一起吃饭吧</h2>
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg">{currentList.name}</h3>
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium">
+                        协作模式
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {currentList.restaurants.length} 家餐厅 · 多人协作中
+                  </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleCopyShareCode}>
+                <Button 
+                    className="shrink-0 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4"
+                    onClick={handleShare}
+                >
                   {copied ? (
                     <>
-                      <Check className="w-4 h-4 mr-1" />
+                      <Check className="w-4 h-4 mr-1.5" />
                       已复制
                     </>
                   ) : (
                     <>
-                      <Share2 className="w-4 h-4 mr-1" />
-                      分享
+                      <Share2 className="w-4 h-4 mr-1.5" />
+                      邀请好友
                     </>
                   )}
                 </Button>
               </div>
-              {currentList.shareCode && (
-                <div className="mt-3 pt-3 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">分享码</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 bg-background rounded-lg text-sm font-mono truncate">
-                      {currentList.shareCode}
-                    </code>
-                    <Button variant="ghost" size="icon" onClick={handleCopyShareCode}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              
+              <div className="mt-3 text-xs text-muted-foreground bg-background/50 p-2 rounded-lg border border-border/50">
+                <p>点击“邀请好友”复制链接，发送给朋友即可加入此列表，共同编辑餐厅。</p>
+              </div>
             </div>
           </div>
         )}

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import type { Restaurant, RestaurantList } from "@/types/restaurant"
 import {
   getLists,
+  saveLists, // Import saveLists to update local storage
   createList,
   addRestaurant,
   updateRestaurant,
@@ -11,7 +12,7 @@ import {
   deleteList,
 } from "@/lib/storage"
 import type { FilterOptions } from "@/components/filter-panel"
-import { Map, List, User } from "lucide-react"
+import { Map, List, User, Loader2 } from "lucide-react" // Add Loader2
 import { MobileMapView } from "@/components/mobile-map-view"
 import { MobileRestaurantList } from "@/components/mobile-restaurant-list"
 import { MobileAddRestaurant } from "@/components/mobile-add-restaurant"
@@ -22,6 +23,8 @@ import { Dice3D, DiceRollOverlay } from "@/components/dice-3d"
 import confetti from "canvas-confetti"
 
 type TabType = "map" | "list" | "add" | "random" | "profile" | "ai-chat"
+
+const API_URL = '' // Use internal API routes when deployed on Vercel
 
 export default function HomePage() {
   const [lists, setLists] = useState<RestaurantList[]>([])
@@ -38,10 +41,54 @@ export default function HomePage() {
   const [isDiceRolling, setIsDiceRolling] = useState(false)
   const [showDiceResult, setShowDiceResult] = useState(false)
   const [diceResult, setDiceResult] = useState<Restaurant | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false) // Sync status
 
+  // 1. Initial Load & URL Handling (Join Room)
   useEffect(() => {
     const initData = async () => {
       let storedLists = getLists()
+      
+      // Check URL parameters for join action
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search)
+        const joinListId = urlParams.get('listId')
+        const action = urlParams.get('action')
+        
+        if (joinListId && action === 'join') {
+           try {
+             setIsSyncing(true)
+             // Fetch the shared list from backend
+             const res = await fetch(`${API_URL}/api/lists/${joinListId}`)
+             if (res.ok) {
+               const sharedList = await res.json()
+               
+               // Merge into local storage
+               const existingIndex = storedLists.findIndex(l => l.id === sharedList.id)
+               if (existingIndex >= 0) {
+                 storedLists[existingIndex] = sharedList
+               } else {
+                 storedLists.push(sharedList)
+               }
+               
+               saveLists(storedLists)
+               setLists(storedLists)
+               setCurrentListId(sharedList.id)
+               setActiveTab("list") // Go to list view to see shared content
+               
+               // Clean URL
+               window.history.replaceState({}, '', '/')
+               alert(`成功加入协作列表：${sharedList.name}`)
+             }
+           } catch (e) {
+             console.error("Join list failed", e)
+             alert("加入列表失败，请检查网络或链接是否正确")
+           } finally {
+             setIsSyncing(false)
+           }
+           return // Stop here, don't load default mock data if joining
+        }
+      }
+
       if (storedLists.length === 0) {
         try {
           const res = await fetch('/api/restaurants')
@@ -67,6 +114,60 @@ export default function HomePage() {
     initData()
   }, [])
 
+  // 2. Sync Effect (Polling)
+  // Poll backend every 2 seconds if we are on a list
+  useEffect(() => {
+    if (!currentListId) return
+    
+    const interval = setInterval(async () => {
+        try {
+            // Only sync if we have a backend (hackathon mode)
+            // Ideally check if this list is "shared" or just sync everything
+            const res = await fetch(`${API_URL}/api/lists/${currentListId}`)
+            if (res.ok) {
+                const remoteList = await res.json()
+                
+                // Compare timestamps or just dumb overwrite for now
+                // Ideally backend should handle "last modified" logic
+                // Here we just update local state if remote has more items or changed name
+                // Simple hack: just overwrite local list in state (and storage)
+                
+                // Update lists state
+                setLists(prev => {
+                    const next = [...prev]
+                    const idx = next.findIndex(l => l.id === remoteList.id)
+                    if (idx >= 0) {
+                        // Only update if content is different (simple check)
+                        if (JSON.stringify(next[idx].restaurants) !== JSON.stringify(remoteList.restaurants)) {
+                             next[idx] = remoteList
+                             saveLists(next) // Persist
+                             return next
+                        }
+                    }
+                    return prev
+                })
+            }
+        } catch (e) {
+            // Backend might be down or list not on backend yet
+        }
+    }, 2000)
+    
+    return () => clearInterval(interval)
+  }, [currentListId])
+
+  // Helper to sync specific list to backend
+  const syncToBackend = async (list: RestaurantList) => {
+      try {
+          await fetch(`${API_URL}/api/lists`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(list)
+          })
+      } catch (e) {
+          console.error("Sync failed", e)
+      }
+  }
+
   const currentList = lists.find((l) => l.id === currentListId)
   const restaurants = currentList?.restaurants || []
 
@@ -88,6 +189,9 @@ export default function HomePage() {
     const newList = createList(name)
     setLists(getLists())
     setCurrentListId(newList.id)
+    
+    // Sync creation
+    syncToBackend(newList)
   }
 
   const handleDeleteList = (id: string) => {
@@ -101,9 +205,15 @@ export default function HomePage() {
     const targetListId = listId || currentListId
     if (targetListId) {
       addRestaurant(targetListId, restaurant)
-      setLists(getLists())
+      
+      const newLists = getLists()
+      setLists(newLists)
       setCurrentListId(targetListId)
       setActiveTab("list")
+      
+      // Sync update
+      const updatedList = newLists.find(l => l.id === targetListId)
+      if (updatedList) syncToBackend(updatedList)
     }
   }
 
@@ -112,7 +222,13 @@ export default function HomePage() {
       const restaurant = restaurants.find((r) => r.id === restaurantId)
       if (restaurant) {
         updateRestaurant(currentListId, restaurantId, { excluded: !restaurant.excluded })
-        setLists(getLists())
+        
+        const newLists = getLists()
+        setLists(newLists)
+        
+        // Sync update
+        const updatedList = newLists.find(l => l.id === currentListId)
+        if (updatedList) syncToBackend(updatedList)
       }
     }
   }
@@ -120,7 +236,13 @@ export default function HomePage() {
   const handleDeleteRestaurant = (restaurantId: string) => {
     if (currentListId) {
       deleteRestaurant(currentListId, restaurantId)
-      setLists(getLists())
+      
+      const newLists = getLists()
+      setLists(newLists)
+      
+      // Sync update
+      const updatedList = newLists.find(l => l.id === currentListId)
+      if (updatedList) syncToBackend(updatedList)
     }
   }
 

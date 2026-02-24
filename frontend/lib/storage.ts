@@ -2,6 +2,19 @@ import type { Restaurant, RestaurantList } from "@/types/restaurant"
 
 const STORAGE_KEY = "restaurant-lists"
 
+// Simple UUID generator for HTTP environments where crypto.randomUUID may not be available
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback UUID generator
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
+
 export function getLists(): RestaurantList[] {
   if (typeof window === "undefined") return []
   const data = localStorage.getItem(STORAGE_KEY)
@@ -15,7 +28,7 @@ export function saveLists(lists: RestaurantList[]) {
 export function createList(name: string): RestaurantList {
   const lists = getLists()
   const newList: RestaurantList = {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name,
     restaurants: [],
     createdAt: new Date().toISOString(),
@@ -32,7 +45,7 @@ export function addRestaurant(listId: string, restaurant: Omit<Restaurant, "id" 
   if (list) {
     list.restaurants.push({
       ...restaurant,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       createdAt: new Date().toISOString(),
     })
     saveLists(lists)

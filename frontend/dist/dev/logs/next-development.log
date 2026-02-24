@@ -1,0 +1,59 @@
+[00:00:19.914] Server  LOG     
+[00:00:19.915] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:19.915] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:19.916] Server  LOG        	- include was updated to add 'dist/types/**/*.ts'
+[00:00:19.917] Server  LOG        	- include was updated to add 'dist/dev/types/**/*.ts'
+[00:00:19.917] Server  LOG     
+[00:00:22.531] Server  LOG      ✓ Ready in 11.3s
+[00:00:25.561] Server  LOG      ○ Compiling / ...
+[00:00:32.160] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:32.749] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:32.749] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:32.749] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1771909001260} /_vercel/insights/view
+[00:00:33.983] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.985] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.987] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.988] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.990] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.991] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.991] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.991] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.992] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.993] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.994] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.994] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.995] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.995] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.995] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.997] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.997] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.998] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.998] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.998] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.999] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\middleware-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.999] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\dev\hot-reloader-turbopack.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:33.999] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:34.000] Server  ERROR   D:\yueD_GEEKDAY\frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:34.041] Browser ERROR   Location failed error {"message":"Get ipLocation failed.Get geolocation position unavailable.","originMessage":"Failed to query location from network service. Check the DevTools console for more information.","status":1}
+[00:00:34.041] Browser LOG     Attempting fallback to CitySearch...
+[00:00:34.226] Browser LOG     Fallback to city: 广州市
+[00:01:50.572] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:50.823] Browser WARN    THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[00:01:50.956] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:01:50.957] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:01:50.957] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1771909079474} /_vercel/insights/view
+[00:01:51.782] Browser LOG     Located successfully {"accuracy":59,"altitude":null,"altitudeAccuracy":null,"code":0,"heading":null,"info":"SUCCESS","isConverted":false,"location_type":"html5","message":"Get ipLocation failed.Get geolocation success.Convert Success.","position":[116.195869,23.392618],"speed":null,"status":0}
+[00:02:39.921] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[00:02:49.189] Browser WARN    THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[00:02:50.808] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[00:02:53.672] Browser LOG     Located successfully {"accuracy":59,"altitude":null,"altitudeAccuracy":null,"code":0,"heading":null,"info":"SUCCESS","isConverted":false,"location_type":"html5","message":"Get ipLocation failed.Get geolocation success.Convert Success.","position":[116.195875,23.392618],"speed":null,"status":0}
+[00:07:40.098] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:07:40.327] Browser WARN    THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[00:07:40.463] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:07:40.463] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:07:40.463] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1771909428949} /_vercel/insights/view
+[00:07:43.241] Browser LOG     Located successfully {"accuracy":59,"altitude":null,"altitudeAccuracy":null,"code":0,"heading":null,"info":"SUCCESS","isConverted":false,"location_type":"html5","message":"Get ipLocation failed.Get geolocation success.Convert Success.","position":[116.195891,23.392616],"speed":null,"status":0}
+[00:07:54.412] Browser WARN    THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[00:07:57.490] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[00:08:03.193] Browser LOG     Located successfully {"accuracy":58,"altitude":null,"altitudeAccuracy":null,"code":0,"heading":null,"info":"SUCCESS","isConverted":false,"location_type":"html5","message":"Get ipLocation failed.Get geolocation success.Convert Success.","position":[116.195888,23.392617],"speed":null,"status":0}

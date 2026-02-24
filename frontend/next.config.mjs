@@ -7,6 +7,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  env: {
+    NEXT_PUBLIC_API_URL: 'http://192.144.211.43:3001',
+  },
 }
 
 export default nextConfig

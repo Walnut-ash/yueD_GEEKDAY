@@ -14,6 +14,7 @@ export const mockRestaurants: Omit<Restaurant, "id" | "createdAt">[] = [
     rating: 4.5,
     source: "小红书",
     imageUrl: "/hotpot-restaurant-interior.jpg",
+    excluded: false,
   },
   {
     name: "外婆家",
@@ -28,6 +29,7 @@ export const mockRestaurants: Omit<Restaurant, "id" | "createdAt">[] = [
     rating: 4.3,
     source: "抖音",
     imageUrl: "/chinese-home-cooking-restaurant.jpg",
+    excluded: false,
   },
   {
     name: "西贝莜面村",
@@ -41,6 +43,7 @@ export const mockRestaurants: Omit<Restaurant, "id" | "createdAt">[] = [
     tags: ["西北菜", "面食"],
     rating: 4.4,
     imageUrl: "/northwest-chinese-cuisine-restaurant.jpg",
+    excluded: false,
   },
   {
     name: "局气",
@@ -55,6 +58,7 @@ export const mockRestaurants: Omit<Restaurant, "id" | "createdAt">[] = [
     rating: 4.2,
     source: "小红书",
     imageUrl: "/beijing-traditional-restaurant.jpg",
+    excluded: false,
   },
   {
     name: "鼎泰丰",
@@ -68,5 +72,6 @@ export const mockRestaurants: Omit<Restaurant, "id" | "createdAt">[] = [
     tags: ["台湾菜", "点心"],
     rating: 4.6,
     imageUrl: "/dim-sum-restaurant-elegant.jpg",
+    excluded: false,
   },
 ]

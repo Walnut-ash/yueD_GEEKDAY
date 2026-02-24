@@ -5,7 +5,6 @@ import type { Restaurant } from "@/types/restaurant"
 import { Button } from "@/components/ui/button"
 import { Dices, MapPin, Clock, Star, PartyPopper, Navigation } from "lucide-react"
 import confetti from "canvas-confetti"
-import D20Dice from "@/components/ui/d20"
 
 interface MobileRandomPickerProps {
   restaurants: Restaurant[]
@@ -13,12 +12,8 @@ interface MobileRandomPickerProps {
 
 export function MobileRandomPicker({ restaurants }: MobileRandomPickerProps) {
   const [picking, setPicking] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [result, setResult] = useState<Restaurant | null>(null)
-  
-  // Dice state
-  const [showDice, setShowDice] = useState(false)
-  const [diceRolling, setDiceRolling] = useState(false)
-  const [diceResult, setDiceResult] = useState<number | null>(null)
 
   const availableRestaurants = restaurants.filter((r) => !r.excluded)
 
@@ -27,65 +22,36 @@ export function MobileRandomPicker({ restaurants }: MobileRandomPickerProps) {
 
     setPicking(true)
     setResult(null)
-    setShowDice(true)
-    setDiceRolling(true)
-    
-    // Determine result immediately but show it via animation
-    const finalIndex = Math.floor(Math.random() * availableRestaurants.length)
-    const randomDice = Math.floor(Math.random() * 20) + 1
-    
-    setDiceResult(randomDice)
 
-    // Roll for 1.5 seconds then land
-    setTimeout(() => {
-      setDiceRolling(false)
-    }, 1500)
-    
-    // Note: The rest of the logic moves to onRollComplete
+    let count = 0
+    const maxCount = 20 + Math.floor(Math.random() * 10)
+    const interval = setInterval(
+      () => {
+        setCurrentIndex(Math.floor(Math.random() * availableRestaurants.length))
+        count++
+
+        if (count >= maxCount) {
+          clearInterval(interval)
+          const finalIndex = Math.floor(Math.random() * availableRestaurants.length)
+          setCurrentIndex(finalIndex)
+          setResult(availableRestaurants[finalIndex])
+          setPicking(false)
+
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+          })
+        }
+      },
+      100 - count * 3,
+    )
   }
 
-  const handleRollComplete = () => {
-    // Wait a bit to show the dice number
-    setTimeout(() => {
-      setShowDice(false)
-      
-      // Select the restaurant (we need to recalculate or store it? 
-      // Better to store it. But for simplicity, let's just pick one deterministically or store it in ref/state.
-      // Actually, since we didn't store finalIndex, let's pick it again or store it.
-      // Re-picking is fine since it's random anyway.
-      const finalIndex = Math.floor(Math.random() * availableRestaurants.length)
-      setResult(availableRestaurants[finalIndex])
-      setPicking(false)
-
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      })
-    }, 800)
-  }
-
-  const currentRestaurant = result
+  const currentRestaurant = picking ? availableRestaurants[currentIndex] : result
 
   return (
-    <div className="h-full flex flex-col bg-background relative">
-      {/* Dice Overlay */}
-      {showDice && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-[300px] h-[300px] relative">
-             <D20Dice 
-               result={diceResult} 
-               rolling={diceRolling} 
-               onRollComplete={handleRollComplete} 
-               className="w-full h-full"
-             />
-             <p className="absolute bottom-[-40px] left-0 right-0 text-center text-primary font-bold text-xl animate-pulse">
-               {diceRolling ? "投掷中..." : " "}
-             </p>
-          </div>
-        </div>
-      )}
-
+    <div className="h-full flex flex-col bg-background">
       {/* 头部 */}
       <div className="flex-shrink-0 p-4 border-b text-center">
         <h1 className="text-xl font-bold">到了饭点，吃哪家？</h1>

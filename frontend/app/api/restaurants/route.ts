@@ -1,47 +1,29 @@
 
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { mockRestaurants } from '@/lib/mock-restaurants'
 
+// Mock implementation to avoid Prisma/Database dependency for Vercel deployment
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tag = searchParams.get('tag')
   const maxPrice = searchParams.get('maxPrice')
   
   try {
-    const where: any = {}
+    let restaurants = mockRestaurants.map(r => ({
+      ...r,
+      id: Math.random().toString(36).substring(7),
+      createdAt: new Date(),
+    }))
 
     if (tag) {
-      where.tags = {
-        some: {
-          name: {
-            contains: tag
-          }
-        }
-      }
+      restaurants = restaurants.filter(r => r.tags.some(t => t.includes(tag)))
     }
 
     if (maxPrice) {
-      where.avgPrice = {
-        lte: parseFloat(maxPrice)
-      }
+      restaurants = restaurants.filter(r => r.avgPrice <= parseFloat(maxPrice))
     }
 
-    const restaurants = await prisma.restaurant.findMany({
-      where,
-      include: {
-        tags: true,
-        dishes: true
-      }
-    })
-
-    // Transform data to match frontend expectations (flat arrays for tags/dishes)
-    const formattedRestaurants = restaurants.map(r => ({
-      ...r,
-      tags: r.tags.map(t => t.name),
-      dishes: r.dishes.map(d => d.name)
-    }))
-
-    return NextResponse.json(formattedRestaurants)
+    return NextResponse.json(restaurants)
   } catch (error) {
     console.error('Error fetching restaurants:', error)
     return NextResponse.json(
